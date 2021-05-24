@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/filecoin-project/lotus/chain/wallet"
+
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/multiformats/go-multiaddr"
 
@@ -86,6 +88,7 @@ type FullNodeOpts struct {
 // storage array defines storage nodes, numbers in the array specify full node
 // index the storage node 'belongs' to
 type APIBuilder func(t *testing.T, full []FullNodeOpts, storage []StorageMiner) ([]TestNode, []TestStorageNode)
+type APIBuilderWithRKH func(t *testing.T, full []FullNodeOpts, storage []StorageMiner, rkh wallet.Key) ([]TestNode, []TestStorageNode)
 type testSuite struct {
 	makeNodes APIBuilder
 }

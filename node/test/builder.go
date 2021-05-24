@@ -201,7 +201,7 @@ func storageBuilder(parentNode test.TestNode, mn mocknet.Mocknet, opts node.Opti
 }
 
 func Builder(t *testing.T, fullOpts []test.FullNodeOpts, storage []test.StorageMiner) ([]test.TestNode, []test.TestStorageNode) {
-	return mockBuilderOpts(t, fullOpts, storage, false)
+	return mockBuilderOpts(t, fullOpts, storage, false, nil)
 }
 
 func MockSbBuilder(t *testing.T, fullOpts []test.FullNodeOpts, storage []test.StorageMiner) ([]test.TestNode, []test.TestStorageNode) {
@@ -209,14 +209,18 @@ func MockSbBuilder(t *testing.T, fullOpts []test.FullNodeOpts, storage []test.St
 }
 
 func RPCBuilder(t *testing.T, fullOpts []test.FullNodeOpts, storage []test.StorageMiner) ([]test.TestNode, []test.TestStorageNode) {
-	return mockBuilderOpts(t, fullOpts, storage, true)
+	return mockBuilderOpts(t, fullOpts, storage, true, nil)
 }
 
 func RPCMockSbBuilder(t *testing.T, fullOpts []test.FullNodeOpts, storage []test.StorageMiner) ([]test.TestNode, []test.TestStorageNode) {
 	return mockSbBuilderOpts(t, fullOpts, storage, true)
 }
 
-func mockBuilderOpts(t *testing.T, fullOpts []test.FullNodeOpts, storage []test.StorageMiner, rpc bool) ([]test.TestNode, []test.TestStorageNode) {
+func MockRKHBuilder(t *testing.T, fullOpts []test.FullNodeOpts, storage []test.StorageMiner, rkhKey wallet.Key) ([]test.TestNode, []test.TestStorageNode) {
+	return mockBuilderOpts(t, fullOpts, storage, false, &rkhKey)
+}
+
+func mockBuilderOpts(t *testing.T, fullOpts []test.FullNodeOpts, storage []test.StorageMiner, rpc bool, rkhKey *wallet.Key) ([]test.TestNode, []test.TestStorageNode) {
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
 
@@ -276,12 +280,24 @@ func mockBuilderOpts(t *testing.T, fullOpts []test.FullNodeOpts, storage []test.
 		maddrs = append(maddrs, maddr)
 		genms = append(genms, *genm)
 	}
+
+	var vrk genesis.Actor
+	if rkhKey != nil {
+		vrk = genesis.Actor{
+			Type:    genesis.TAccount,
+			Balance: big.Mul(big.NewInt(400000000), types.NewInt(build.FilecoinPrecision)),
+			Meta:    (&genesis.AccountMeta{Owner: rkhKey.Address}).ActorMeta(),
+		}
+	} else {
+		vrk = gen.DefaultVerifregRootkeyActor
+	}
+
 	templ := &genesis.Template{
 		Accounts:         genaccs,
 		Miners:           genms,
 		NetworkName:      "test",
 		Timestamp:        uint64(time.Now().Unix() - 10000), // some time sufficiently far in the past
-		VerifregRootKey:  gen.DefaultVerifregRootkeyActor,
+		VerifregRootKey:  vrk,
 		RemainderAccount: gen.DefaultRemainderAccountActor,
 	}
 
@@ -306,6 +322,7 @@ func mockBuilderOpts(t *testing.T, fullOpts []test.FullNodeOpts, storage []test.
 
 			fullOpts[i].Opts(fulls),
 		)
+
 		if err != nil {
 			t.Fatal(err)
 		}
