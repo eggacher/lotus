@@ -3,6 +3,7 @@ package sectorstorage
 import (
 	"context"
 	"errors"
+	cid "github.com/ipfs/go-cid/_rsrch/cidiface"
 	"io"
 	"net/http"
 	"sync"
@@ -47,6 +48,8 @@ type Worker interface {
 }
 
 type SectorManager interface {
+	CountMaxSealingSectors(ctx context.Context) int
+
 	ReadPiece(context.Context, io.Writer, storage.SectorRef, storiface.UnpaddedByteIndex, abi.UnpaddedPieceSize, abi.SealRandomness, cid.Cid) error
 
 	ffiwrapper.StorageSealer
@@ -167,6 +170,10 @@ func New(ctx context.Context, ls stores.LocalStorage, si stores.SectorIndex, sc 
 	}
 
 	return m, nil
+}
+
+func (m *Manager) CountMaxSealingSectors(ctx context.Context) int {
+	return m.sched.CountMaxSealingSectors(ctx)
 }
 
 func (m *Manager) AddLocalStorage(ctx context.Context, path string) error {

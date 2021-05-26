@@ -165,6 +165,37 @@ func newScheduler() *scheduler {
 	}
 }
 
+func (sh *scheduler) CountMaxSealingSectors(ctx context.Context) int {
+
+	count := 0
+	for workerID, worker := range sh.workers {
+
+		log.Warn("workerID",workerID)
+		taskTypes, err := worker.workerRpc.TaskTypes(ctx)
+		if err != nil {
+			log.Warn("rpc链接失败", workerID)
+			continue
+		}
+
+		if _, ok := taskTypes["seal/v0/precommit/1"]; !ok {
+			log.Warn("没有找到p1")
+			continue
+		}
+
+		paths,err := worker.workerRpc.Paths(ctx)
+		if err != nil {
+			continue
+		}
+
+		for _, path := range paths {
+			if path.CanSeal {
+				count ++
+			}
+		}
+	}
+	return count
+}
+
 func (sh *scheduler) Schedule(ctx context.Context, sector storage.SectorRef, taskType sealtasks.TaskType, sel WorkerSelector, prepare WorkerAction, work WorkerAction) error {
 	ret := make(chan workerResponse)
 
